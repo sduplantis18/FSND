@@ -119,20 +119,25 @@ def index():
 
 @app.route('/venues')
 def venues():
-  # TODO: replace with real venues data.
-  #       num_shows should be aggregated based on number of upcoming shows per venue.
-  areas = Venue.query.all()
+  areas = db.session.query(Venue.city, Venue.state).distinct(Venue.city, Venue.state)
   data = []
   for area in areas:
-    areas = Venue.query.filter(Venue.city == area.city,  Venue.state == area.state).all()
-    record = {
-      'city': area.city,
-      'state': area.state,
-      'venues': []
-    }
-    data.append(record)
-  return render_template('pages/venues.html', areas=areas)
+    areas = Venue.query.filter_by(state=area.state).filter_by(city=area.city).all()
+    venue_data = []
+    for venue in areas:
+      venue_data.append({
+        'id':venue.id,
+        'name':venue.name,
+        'num_upcoming_shows': len(db.session.query(Show).filter(Show.show_date>datetime.now()).all())
+      })
+      data.append({
+        'city':area.city,
+        'state':area.state,
+        'venues':venue_data
+      })
+  return render_template('pages/venues.html', areas=data)
 
+    
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
