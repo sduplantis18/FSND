@@ -13,6 +13,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate, MigrateCommand
+from datetime import date
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -96,14 +97,6 @@ def format_datetime(value, format='medium'):
 
 app.jinja_env.filters['datetime'] = format_datetime
 
-def get_value(field_name):
-  if field_name == 'seeking_talent' or field_name == 'seeking_venue' or field_name == 'seeking_performance' and request.form[field_name] == 'y':
-    return True
-  elif field_name == 'seeking_talent' or field_name == 'seeking_venue' or field_name == 'seeking_performance' and request.form[field_name] != 'y':
-    return False
-  else:
-    return request.form[field_name]  
-
 
 #----------------------------------------------------------------------------#
 # Controllers.
@@ -119,16 +112,18 @@ def index():
 
 @app.route('/venues')
 def venues():
+
   areas = db.session.query(Venue.city, Venue.state).distinct(Venue.city, Venue.state)
   data = []
   for area in areas:
     areas = Venue.query.filter_by(state=area.state).filter_by(city=area.city).all()
     venue_data = []
     for venue in areas:
+      upcoming_shows = len(db.session.query(Show).filter(Show.show_date >= date.today()).all())
       venue_data.append({
         'id':venue.id,
         'name':venue.name,
-        'num_upcoming_shows': len(db.session.query(Show).filter(Show.show_date>datetime.now()).all())
+        'num_upcoming_shows': upcoming_shows
       })
       data.append({
         'city':area.city,
@@ -171,15 +166,15 @@ def create_venue_submission():
       # TODO: modify data to be the data object returned from db insertion
       # TODO: insert form data as a new Venue record in the db, instead
       venue = Venue(
-          name=get_value('name'),
-          city=get_value('city'),
-          address=get_value('address'),
-          state=get_value('state'),
-          phone=get_value('phone'),
-          facebook_link=get_value('facebook_link'),
-          genres=get_value('genres'),
-          seeking_talent=get_value('seeking_talent'),
-          seeking_description=get_value('seeking_description')
+          name=request.form.get('name'),
+          city=request.form.get('city'),
+          address=request.form.get('address'),
+          state=request.form.get('state'),
+          phone=request.form.get('phone'),
+          facebook_link=request.form.get('facebook_link'),
+          genres=request.form.get('genres'),
+          seeking_talent= True if 'seeking_talent' in request.form else False,
+          seeking_description=request.form.get('seeking_description')
       )
       try:    
           db.session.add(venue)
@@ -288,13 +283,13 @@ def create_artist_form():
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
   new_artist = Artist(
-    name=get_value('name'),
-    city=get_value('city'),
-    state=get_value('state'),
-    phone=get_value('phone'),
-    image_link=get_value('image_link'),
-    genres=get_value('genres'),
-    facebook_link=get_value('facebook_link')
+    name = request.form.get('name'),
+    city= request.form.get('city'),
+    state=request.form.get('state'),
+    phone=request.form.get('phone'),
+    image_link=request.form.get('image_link'),
+    genres=request.form.get('genres'),
+    facebook_link=request.form.get('facebook_link')
   )
   try:
     db.session.add(new_artist)
