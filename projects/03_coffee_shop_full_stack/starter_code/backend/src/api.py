@@ -16,7 +16,7 @@ CORS(app)
 !! NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
 !! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 '''
-# db_drop_and_create_all()
+db_drop_and_create_all()
 
 ## ROUTES
 '''
@@ -27,7 +27,25 @@ CORS(app)
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
-
+@app.route('/drinks', methods=['GET'])
+def get_drinks():
+    #store all drinks in a drinks variable
+    drinks = Drink.query.all()
+    total_drinks = len(drinks)
+    #throw an error if no drinks are found
+    if total_drinks == 0:
+        abort(404)
+    #setup empty drink list
+    drink_list = {}
+    #loop through the list of drinks and add them to a list
+    for drink in drinks:
+        drink_list[drink.id] = drink.title
+        print(drink_list)
+    
+    return jsonify({
+        'success':True,
+        'drinks':drink_list
+    })
 
 '''
 @TODO implement endpoint
@@ -37,8 +55,11 @@ CORS(app)
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
-
-
+@app.route('/drinks-detail', methods=['GET'])
+@requires_auth('get:drinks-detail')
+def headers(payload):
+    print(payload)
+    return 'Access Granted'
 '''
 @TODO implement endpoint
     POST /drinks
@@ -97,7 +118,13 @@ def unprocessable(error):
                     }), 404
 
 '''
-
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+                    "success": False, 
+                    "error": 404,
+                    "message": "Not Found"
+                    }), 404
 '''
 @TODO implement error handler for 404
     error handler should conform to general task above 
